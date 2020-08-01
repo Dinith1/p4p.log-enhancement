@@ -1,0 +1,7 @@
+.idea/
+
+/trained_vectors/embeddings/*
+!/trained_vectors/embeddings/README.md
+
+/trained_vectors/py_obj/*
+!/trained_vectors/py_obj/README.md
