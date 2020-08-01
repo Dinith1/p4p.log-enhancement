@@ -1,7 +1,7 @@
 import argparse
+import glove.glove as glove
 
 if __name__ == '__main__':
-
     # Set up CLI arguments
     parser = argparse.ArgumentParser(description='Process a log file to make it simpler.')
 
@@ -21,4 +21,6 @@ if __name__ == '__main__':
 
     print(args.log)
     print(args.model)
-    
+
+    word = glove.process_log(args.log, args.model)
+    print(word)
