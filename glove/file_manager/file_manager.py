@@ -3,25 +3,23 @@
 import pickle
 import os.path
 
-currDir = os.path.dirname(os.path.realpath(__file__))
-trainedVectorsFolder = os.path.join(currDir, '../trained_vectors/')
-
-# Needed for os.path.isfile() function
-TRAINED_VECTORS_EMBEDDINGS_FOLDER = trainedVectorsFolder + 'embeddings/'
-TRAINED_VECTORS_OBJ_FOLDER = trainedVectorsFolder + 'py_obj/'
-
-MODELS_RELATIVE_PATH = '../../trained_vectors/py_obj/'
+MODEL_OBJ_RELATIVE_PATH = './trained_vectors/py_obj/'
 
 
-def is_model_exist(name):
-    return os.path.isfile(TRAINED_VECTORS_OBJ_FOLDER + name + '.pkl')
+def is_file_exist(path):
+    return os.path.isfile(path)
+
+
+def is_model_obj_exist(name):
+    print("Checking for existing" + MODEL_OBJ_RELATIVE_PATH + name + '.pkl model dictionary...')
+    return is_file_exist(MODEL_OBJ_RELATIVE_PATH + name + '.pkl')
 
 
 def save_model(name, obj):
-    with open(MODELS_RELATIVE_PATH + name + '.pkl', 'wb') as f:
+    with open(MODEL_OBJ_RELATIVE_PATH + name + '.pkl', 'wb') as f:
         pickle.dump(obj, f, pickle.HIGHEST_PROTOCOL)
 
 
 def load_model(name):
-    with open(MODELS_RELATIVE_PATH + name + '.pkl', 'rb') as f:
+    with open(MODEL_OBJ_RELATIVE_PATH + name + '.pkl', 'rb') as f:
         return pickle.load(f)

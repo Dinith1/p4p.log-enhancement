@@ -19,8 +19,9 @@ if __name__ == '__main__':
 
     args = parser.parse_args()
 
-    print(args.log)
-    print(args.model)
+    log = args.log.replace("\\", "/")
+    model = args.model.replace("\\", "/")
 
-    word = glove.process_log(args.log, args.model)
-    print(word)
+    words = glove.process_log(log, model)
+
+    print(words)
