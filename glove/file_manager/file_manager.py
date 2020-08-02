@@ -2,8 +2,11 @@
 
 import pickle
 import os.path
+import pandas as pd
+from datetime import datetime
 
 MODEL_OBJ_RELATIVE_PATH = './trained_vectors/py_obj/'
+PROCESSED_LOG_RELATIVE_PATH = './logs/processed/'
 
 
 def is_file_exist(path):
@@ -23,3 +26,13 @@ def save_model(name, obj):
 def load_model(name):
     with open(MODEL_OBJ_RELATIVE_PATH + name + '.pkl', 'rb') as f:
         return pickle.load(f)
+
+
+def save_csv(obj, log_name, model_name):
+    df = pd.DataFrame.from_dict(obj)
+
+    now = datetime.now()
+    dt = now.strftime('%d-%m-%YT%H.%M.%S')
+
+    print("Saving csv...")
+    df.to_csv(PROCESSED_LOG_RELATIVE_PATH + log_name + "__" + model_name + "__" + dt + ".txt", index=False, sep='\t')

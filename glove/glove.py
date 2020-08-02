@@ -32,9 +32,15 @@ def process_log(log_path, model_path):
 
     log_obj = lr.read_log(log_path)
 
-    print(log_obj)
+    transformed_log = transform_log(log_obj, model_obj)
 
-    return find_closest_embeddings("25", model_obj, 5)
+    slash = log_path.rfind('/')
+    dot = log_path.rfind('.')
+    log_name = log_path[(slash + 1):dot]
+
+    fm.save_csv(transformed_log, log_name, model_name)
+
+    return transformed_log
 
 
 def create_model(name):
@@ -58,11 +64,40 @@ def create_model(name):
     return embeddings_dict
 
 
-def find_closest_embeddings(query_word, model, num):
+def transform_log(log, model):
+    new_log = {'Start time': [], 'End time': [], 'Activity': []}
+
+    # For now hardcoded to OrdonezB_Sensors.txt log only\
+    for i, row in log.iterrows():
+        print(i)
+
+        new_log['Start time'].append(row['Start time'])
+        new_log['End time'].append(row['End time'])
+
+        l = row['Location'].lower()
+        t = row['Type'].lower()
+        p = row['Place'].lower()
+
+        new_log['Activity'].append(combine_words([l, t, p], model))
+
+    return new_log
+
+
+def combine_words(words, model):
+    # THIS LINE WILL DETERMINE WHAT THE ACTIVITY FOR EACH ROW OF THE LOG WILL BE!
+    new_word_embedding = model["in"] + model[words[2]] + model["do"] + model["activity"]
+
+    # for word in words[1:]:
+    #     new_word_embedding += model[word]
+
+    return find_closest_embeddings(new_word_embedding, model, 5)[0]
+
+
+def find_closest_embeddings(embedding, model, num):
     """
     https://medium.com/analytics-vidhya/basics-of-using-pre-trained-glove-vectors-in-python-d38905f356db
     """
 
-    embedding = model[query_word]
+    # embedding = model[query_word]
 
     return sorted(model.keys(), key=lambda word: spatial.distance.euclidean(model[word], embedding))[1:num]
