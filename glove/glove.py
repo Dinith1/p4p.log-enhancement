@@ -2,9 +2,11 @@ import numpy as np
 from scipy import spatial
 import glove.file_manager.file_manager as fm
 import glove.file_manager.log_reader as lr
+import concurrent.futures
+import math
 
 
-def process_log(log_path, model_path):
+def process_log(log_path, model_path, num_threads):
     is_log_exist = fm.is_file_exist(log_path)
     is_model_exist = fm.is_file_exist(model_path)
 
@@ -32,7 +34,7 @@ def process_log(log_path, model_path):
 
     log_obj = lr.read_log(log_path)
 
-    transformed_log = transform_log(log_obj, model_obj)
+    transformed_log = transform_log(log_obj, model_obj, num_threads)
 
     slash = log_path.rfind('/')
     dot = log_path.rfind('.')
@@ -64,9 +66,41 @@ def create_model(name):
     return embeddings_dict
 
 
-def transform_log(log, model):
+def transform_log(log, model, num_threads):
     new_log = {'Start time': [], 'End time': [], 'Activity': []}
 
+    num_rows = log["Start time"].size
+
+    num_threads_to_use = 0
+
+    if num_rows < num_threads:
+        num_threads_to_use = num_rows
+    else:
+        num_threads_to_use = num_threads
+
+    to_from = []
+
+    # Determine which part of the input log each thread will work on
+    if num_threads_to_use == num_rows:
+        for i in range(num_threads_to_use):
+            to_from[i] = [i, i + 1]
+    else:
+        at_least = math.floor(num_rows / num_threads_to_use)
+        extra = (num_rows / num_threads_to_use - at_least) * num_threads_to_use
+
+        for i in range(num_threads_to_use):
+            to_from[i] = []
+
+    with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads_to_use) as executor:
+        for i in range(num_threads):
+            executor.submit(x, to_from[i][0], to_from[i][1], log, model, new_log, i)
+
+    print("Transforming the log using %s threads... This may take a while...", num_threads_to_use)
+
+    return new_log
+
+
+def x(start_line, end_line, log, model, new_log, thread):
     # For now hardcoded to OrdonezB_Sensors.txt log only\
     for i, row in log.iterrows():
         print(i)
@@ -78,9 +112,8 @@ def transform_log(log, model):
         t = row['Type'].lower()
         p = row['Place'].lower()
 
-        new_log['Activity'].append(combine_words([l, t, p], model))
-
-    return new_log
+        # new_log['Activity'].append(combine_words([l, t, p], model))
+        new_log['Activity'].append(find_closest_embeddings(model["king"] - model["male"] + model["female"], model, 5))
 
 
 def combine_words(words, model):

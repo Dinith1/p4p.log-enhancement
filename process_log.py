@@ -17,11 +17,19 @@ if __name__ == '__main__':
                         help='The filename of the pre-trained GloVe model to use'
                         )
 
+    parser.add_argument('--threads', '-t',
+                        action='store',
+                        type=int,
+                        default=1,
+                        help='The number of threads to run the program on'
+                        )
+
     args = parser.parse_args()
 
     log = args.log.replace("\\", "/")
     model = args.model.replace("\\", "/")
+    threads = args.threads
 
-    words = glove.process_log(log, model)
+    words = glove.process_log(log, model, threads)
 
     print(words)
