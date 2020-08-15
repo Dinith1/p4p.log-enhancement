@@ -1,9 +1,11 @@
-import numpy as np
-from scipy import spatial
-import glove.file_manager.file_manager as fm
-import glove.file_manager.log_reader as lr
 import concurrent.futures
 import math
+
+import numpy as np
+from scipy import spatial
+
+import glove.file_manager.file_manager as fm
+import glove.file_manager.log_reader as lr
 
 
 def process_log(log_path, model_path, num_threads):
@@ -40,7 +42,7 @@ def process_log(log_path, model_path, num_threads):
     dot = log_path.rfind('.')
     log_name = log_path[(slash + 1):dot]
 
-    fm.save_csv(transformed_log, log_name, model_name)
+    # fm.save_csv(transformed_log, log_name, model_name)
 
     return transformed_log
 
@@ -67,9 +69,8 @@ def create_model(name):
 
 
 def transform_log(log, model, num_threads):
-    new_log = {'Start time': [], 'End time': [], 'Activity': []}
-
     num_rows = log["Start time"].size
+    new_log = {'Start time': [None] * num_rows, 'End time': [None] * num_rows, 'Activity': [None] * num_rows}
 
     num_threads_to_use = 0
 
@@ -78,42 +79,63 @@ def transform_log(log, model, num_threads):
     else:
         num_threads_to_use = num_threads
 
-    to_from = []
+    to_from = [None] * num_threads_to_use
 
     # Determine which part of the input log each thread will work on
     if num_threads_to_use == num_rows:
         for i in range(num_threads_to_use):
             to_from[i] = [i, i + 1]
     else:
+        # Each thread should process at_least many rows
         at_least = math.floor(num_rows / num_threads_to_use)
-        extra = (num_rows / num_threads_to_use - at_least) * num_threads_to_use
+        # Number of threads that will process 1 extra row
+        extra = math.floor((num_rows / num_threads_to_use - at_least) * num_threads_to_use)
+
+        f = 0  # From
+        t = at_least  # To
+
+        if extra > 0:
+            t += 1
+            extra -= 1
 
         for i in range(num_threads_to_use):
-            to_from[i] = []
+            to_from[i] = [f, t]
+
+            f = t
+            t = f + at_least
+
+            if extra > 0:
+                t += 1
+                extra -= 1
+
+    print(to_from)
+
+    print("Transforming the log using %s thread(s)... This may take a while..." % num_threads_to_use)
 
     with concurrent.futures.ThreadPoolExecutor(max_workers=num_threads_to_use) as executor:
         for i in range(num_threads):
-            executor.submit(x, to_from[i][0], to_from[i][1], log, model, new_log, i)
-
-    print("Transforming the log using %s threads... This may take a while...", num_threads_to_use)
+            print("STARTING THREAD %s" % i)
+            executor.submit(generate_processed_log, to_from[i][0], to_from[i][1], log, model, new_log, i)
 
     return new_log
 
 
-def x(start_line, end_line, log, model, new_log, thread):
-    # For now hardcoded to OrdonezB_Sensors.txt log only\
-    for i, row in log.iterrows():
-        print(i)
+def generate_processed_log(start_line, end_line, log, model, new_log, thread):
+    # For now hardcoded to OrdonezB_Sensors.txt log only
+    for i in range(start_line, end_line):
+        print("Thread %d, Processing row %d" % (thread, i))
 
-        new_log['Start time'].append(row['Start time'])
-        new_log['End time'].append(row['End time'])
+        row = log.loc[i]
 
-        l = row['Location'].lower()
-        t = row['Type'].lower()
-        p = row['Place'].lower()
+        new_log['Start time'][i] = row['Start time']
+        new_log['End time'][i] = row['End time']
+
+        # l = row['Location'].lower()
+        # t = row['Type'].lower()
+        # p = row['Place'].lower()
 
         # new_log['Activity'].append(combine_words([l, t, p], model))
-        new_log['Activity'].append(find_closest_embeddings(model["king"] - model["male"] + model["female"], model, 5))
+        new_log['Activity'][i] = find_closest_embeddings(model["king"] - model["male"] + model["female"], model, 5)
 
 
 def combine_words(words, model):
